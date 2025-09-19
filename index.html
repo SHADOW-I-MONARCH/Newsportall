@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PulseTech — Static Tech News Portal</title>
+  <meta name="description" content="A compact, single-file static tech news portal demo." />
+
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#94a3b8; --accent:#06b6d4; --glass: rgba(255,255,255,0.04);
+      --max-w:1100px;
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;padding:24px;background:linear-gradient(180deg,#071029 0%, #071221 100%);color:#e6eef6;display:flex;justify-content:center}
+    .wrap{width:100%;max-width:var(--max-w)}
+
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .title{font-size:18px;line-height:1;font-weight:700}
+    .subtitle{font-size:12px;color:var(--muted)}
+
+    .controls{display:flex;gap:12px;align-items:center}
+    .search{background:var(--glass);border:1px solid rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;display:flex;align-items:center;gap:8px}
+    .search input{background:transparent;border:0;color:inherit;outline:none;min-width:180px}
+    .select, .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:inherit}
+    .btn{cursor:pointer}
+
+    .layout{display:grid;grid-template-columns:1fr 320px;gap:18px}
+    @media (max-width:900px){.layout{grid-template-columns:1fr}}
+
+    .feed{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+    @media (max-width:760px){.feed{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    .thumb{width:100%;height:160px;border-radius:10px;background-size:cover;background-position:center;margin-bottom:10px}
+    .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .kicker{font-size:12px;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);color:var(--muted)}
+    .headline{font-size:16px;font-weight:600;margin:0 0 8px}
+    .excerpt{font-size:13px;color:var(--muted);margin:0}
+
+    .sidebar .card{position:sticky;top:24px}
+    .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .tag{font-size:12px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer}
+
+    .small-list{display:flex;flex-direction:column;gap:10px}
+    .small-item{display:flex;gap:10px;align-items:center}
+    .small-item img{width:64px;height:44px;border-radius:8px;object-fit:cover}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* Modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:28px}
+    .modal.open{display:flex}
+    .modal-content{width:100%;max-width:880px;background:linear-gradient(180deg,#06101a, #071226);border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.04)}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .close{background:transparent;border:0;color:var(--muted);cursor:pointer}
+
+    .toolbar{display:flex;gap:8px;align-items:center}
+
+    /* small helpers */
+    .muted{color:var(--muted)}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo">PT</div>
+        <div>
+          <div class="title">PulseTech</div>
+          <div class="subtitle">Fresh tech news — static demo</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search" role="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input id="q" placeholder="Search headlines, companies, keywords" />
+        </div>
+        <select id="category" class="select" aria-label="Filter by category">
+          <option value="all">All</option>
+          <option>AI</option>
+          <option>Mobile</option>
+          <option>Startups</option>
+          <option>Security</option>
+          <option>Hardware</option>
+        </select>
+        <button id="clearBtn" class="btn">Clear</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section>
+        <div class="feed" id="feed">
+          <!-- Article cards injected by JS -->
+        </div>
+        <footer>Demo portal • static single-file • articles are sample content</footer>
+      </section>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <strong>Top Tags</strong>
+            <div class="muted" id="resultsCount">--</div>
+          </div>
+
+          <div class="tags" id="tags">
+            <!-- tags inserted -->
+          </div>
+
+          <div style="margin-top:12px">
+            <strong>Bookmarked</strong>
+            <div class="small-list" id="bookmarks">
+              <!-- bookmarks show here -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <strong>Latest</strong>
+          <div class="small-list" id="latest">
+            <!-- latest list -->
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- modal viewer -->
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <div id="modalKicker" class="kicker"></div>
+            <h2 id="modalTitle" style="margin:6px 0 0"></h2>
+            <div id="modalBy" class="muted" style="font-size:13px;margin-top:6px"></div>
+          </div>
+          <div class="toolbar">
+            <button id="modalBookmark" class="btn">Bookmark</button>
+            <button class="close" id="modalClose">Close</button>
+          </div>
+        </div>
+        <div id="modalImg" class="thumb" style="height:280px"></div>
+        <p id="modalBody" style="margin-top:12px;color:var(--muted)"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Sample data — replace or extend with real content
+    const ARTICLES = [
+      {id:1,title:'Breakthrough in Efficient LLM Training Reduces Costs by 60%',kicker:'AI',excerpt:'Researchers unveiled a technique that drastically reduces GPU hours required for training large language models.',img:'https://images.unsplash.com/photo-1526378729711-2d2a13f3f9b9?auto=format&fit=crop&w=1200&q=60',author:'R. Mehta',date:'2025-09-12'},
+      {id:2,title:'New Foldable Phone Raises the Bar for Durability',kicker:'Mobile',excerpt:'A startup shipped a foldable with a new polymer hinge — reviewers praise its durability.',img:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=60',author:'S. Roy',date:'2025-09-16'},
+      {id:3,title:'Zero-day Exploit Targeting Popular VPN — Patch Released',kicker:'Security',excerpt:'Vendors pushed emergency updates after researchers disclosed a chain of exploits affecting millions.',img:'https://images.unsplash.com/photo-1505685296765-3a2736de412f?auto=format&fit=crop&w=1200&q=60',author:'A. Kumar',date:'2025-09-10'},
+      {id:4,title:'Edge AI Chips Bring On-Device Inference to Affordable Phones',kicker:'Hardware',excerpt:'New chips promise on-device image and speech models without draining battery.',img:'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=60',author:'M. Singh',date:'2025-09-05'},
+      {id:5,title:'Seed Round: QuantumCloud Raises $12M for Quantum Dev Tools',kicker:'Startups',excerpt:'The startup aims to make quantum development accessible via a cloud-based SDK.',img:'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=60',author:'L. Patel',date:'2025-09-14'}
+    ];
+
+    // state
+    let state = {q:'',category:'all',bookmarks:[],filtered:ARTICLES.slice()};
+
+    // DOM refs
+    const feed = document.getElementById('feed');
+    const tagsEl = document.getElementById('tags');
+    const latestEl = document.getElementById('latest');
+    const bookmarksEl = document.getElementById('bookmarks');
+    const qInput = document.getElementById('q');
+    const cat = document.getElementById('category');
+    const resultsCount = document.getElementById('resultsCount');
+
+    // init
+    function init(){
+      loadBookmarks();
+      renderTags();
+      renderLatest();
+      renderFeed(ARTICLES);
+      attach();
+    }
+
+    function attach(){
+      qInput.addEventListener('input', e=>{state.q=e.target.value;applyFilter()});
+      cat.addEventListener('change', e=>{state.category=e.target.value;applyFilter()});
+      document.getElementById('clearBtn').addEventListener('click',()=>{qInput.value='';cat.value='all';state.q='';state.category='all';applyFilter()});
+      document.getElementById('modalClose').addEventListener('click',closeModal);
+      document.getElementById('modalBookmark').addEventListener('click',toggleModalBookmark);
+      document.getElementById('modal').addEventListener('click', (ev)=>{ if(ev.target.id==='modal') closeModal() });
+    }
+
+    // filter
+    function applyFilter(){
+      const q = state.q.trim().toLowerCase();
+      const c = state.category;
+      let arr = ARTICLES.filter(a=>{
+        if(c!=='all' && a.kicker !== c) return false;
+        if(!q) return true;
+        return a.title.toLowerCase().includes(q) || a.excerpt.toLowerCase().includes(q) || a.author.toLowerCase().includes(q);
+      });
+      state.filtered = arr;
+      renderFeed(arr);
+      resultsCount.textContent = arr.length + ' results';
+    }
+
+    // rendering functions
+    function renderFeed(list){
+      feed.innerHTML='';
+      if(list.length===0){ feed.innerHTML='<div class="card">No articles found.</div>'; return }
+      list.forEach(a=>{
+        const card = document.createElement('article'); card.className='card';
+        card.innerHTML = `
+          <div class="thumb" style="background-image:url('${a.img}')" aria-hidden></div>
+          <div class="meta"><div class="kicker">${a.kicker}</div><div class="muted">${a.date}</div></div>
+          <h3 class="headline">${a.title}</h3>
+          <p class="excerpt">${a.excerpt}</p>
+        `;
+        card.addEventListener('click',()=>openModal(a));
+        feed.appendChild(card);
+      })
+    }
+
+    function renderTags(){
+      // extract unique kickers
+      const uniq = Array.from(new Set(ARTICLES.map(a=>a.kicker)));
+      tagsEl.innerHTML='';
+      uniq.forEach(t=>{
+        const b=document.createElement('div');b.className='tag';b.textContent=t;b.addEventListener('click',()=>{cat.value=t;state.category=t;applyFilter()});tagsEl.appendChild(b);
+      });
+    }
+
+    function renderLatest(){
+      const sorted = ARTICLES.slice().sort((x,y)=> new Date(y.date)-new Date(x.date)).slice(0,4);
+      latestEl.innerHTML='';
+      sorted.forEach(a=>{
+        const it = document.createElement('div');it.className='small-item';
+        it.innerHTML = `<img src="${a.img}&w=300" alt="" /><div style=\"flex:1\"><div style=\"font-size:13px;font-weight:600\">${a.title}</div><div class=\"muted\" style=\"font-size:12px\">${a.date}</div></div>`;
+        it.addEventListener('click',()=>openModal(a));
+        latestEl.appendChild(it);
+      })
+    }
+
+    // bookmarks
+    function loadBookmarks(){
+      try{state.bookmarks = JSON.parse(localStorage.getItem('pt_bookmarks')||'[]')}catch(e){state.bookmarks=[]}
+      renderBookmarks();
+    }
+    function saveBookmarks(){ localStorage.setItem('pt_bookmarks', JSON.stringify(state.bookmarks)); renderBookmarks(); }
+    function toggleBookmark(id){
+      if(state.bookmarks.includes(id)){ state.bookmarks = state.bookmarks.filter(x=>x!==id) }
+      else state.bookmarks.push(id);
+      saveBookmarks();
+    }
+    function renderBookmarks(){
+      bookmarksEl.innerHTML='';
+      if(state.bookmarks.length===0){bookmarksEl.innerHTML='<div class="muted">No bookmarks yet.</div>';return}
+      state.bookmarks.forEach(id=>{
+        const a = ARTICLES.find(x=>x.id===id); if(!a) return;
+        const el = document.createElement('div');el.className='small-item';el.innerHTML=`<img src="${a.img}&w=400" /><div style=\"flex:1\"><div style=\"font-size:13px;font-weight:600\">${a.title}</div><div class=\"muted\">${a.date}</div></div>`;
+        el.addEventListener('click',()=>openModal(a));
+        bookmarksEl.appendChild(el);
+      })
+    }
+
+    // modal
+    let currentModal = null;
+    function openModal(a){
+      currentModal = a;
+      document.getElementById('modalKicker').textContent = a.kicker;
+      document.getElementById('modalTitle').textContent = a.title;
+      document.getElementById('modalBy').textContent = `By ${a.author} • ${a.date}`;
+      document.getElementById('modalImg').style.backgroundImage = `url(${a.img})`;
+      document.getElementById('modalBody').textContent = a.excerpt + ' ' + 'This is a demo article—expand this body with the full story or link to an external article.';
+      document.getElementById('modal').classList.add('open');
+      updateModalBookmark();
+    }
+    function closeModal(){document.getElementById('modal').classList.remove('open');currentModal = null}
+    function updateModalBookmark(){
+      const btn = document.getElementById('modalBookmark');
+      if(!currentModal) return; btn.textContent = state.bookmarks.includes(currentModal.id)? 'Bookmarked':'Bookmark';
+    }
+    function toggleModalBookmark(){ if(!currentModal) return; toggleBookmark(currentModal.id); updateModalBookmark(); }
+
+    // initial run
+    init();
+  </script>
+</body>
+            </html>
